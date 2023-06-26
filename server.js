@@ -8,14 +8,42 @@ const axiosInstance = axios.create({
     maxBodyLength: Infinity
   });
 
+//   let chunkArray = []
+  let chunkId = 0
+
 // let data = Buffer.alloc(0);
 const sendChunkToServer = async(chunk, totalChunks, noOfChunks) => {
+    // if(chunkArray.length == noOfChunks){
+        // data = Buffer.concat([data, chunk])
+        return new Promise(async (resolve, reject) => {
+            chunkId++
+            const res = await axiosInstance.post('http://localhost:3000/upload', chunk, {headers: {"Content-Type": "application/json", 'X-Total-Chunks': totalChunks,'X-No-Of-Chunks': noOfChunks }
+            }) 
+            if(res.status === 200){
+                resolve("Successfull transfer.")
+                // chunkArray = []
+            }  
+            else
+                reject("Request failed")
+            // const res = await fs.appendFile("newtext.txt",chunk)
+            //     .then(() => {
+            //       resolve("hi")  
+            //     })
+            //     .catch(() => {
+            //         reject("Error")
+            //     })
+        })
+    // }
+    // chunkArray.push(chunk)
+}
+
+const folderRequest = async() => {
     // data = Buffer.concat([data, chunk])
     return new Promise(async (resolve, reject) => {
-        const res = await axiosInstance.post('http://localhost:3000/upload', Buffer.from(chunk), {headers: {"Content-Type": "application/octet-stream", 'X-Total-Chunks': totalChunks,'X-No-Of-Chunks': noOfChunks }
+        const res = await axiosInstance.post('http://localhost:3000/uploadFile', {headers: {"Content-Type": "application/octet-stream"}
         }) 
         if(res.status === 200)
-            resolve("hi")
+            resolve(upload());
         else
             reject("Request failed")
         // const res = await fs.appendFile("newtext.txt",chunk)
@@ -29,35 +57,16 @@ const sendChunkToServer = async(chunk, totalChunks, noOfChunks) => {
     
 }
 
-// const folderRequest = async() => {
-//     // data = Buffer.concat([data, chunk])
-//     return new Promise(async (resolve, reject) => {
-//         const res = await axiosInstance.post('http://localhost:3000/uploadFile', {headers: {"Content-Type": "application/octet-stream"}
-//         }) 
-//         if(res.status === 200)
-//             resolve("hi")
-//         else
-//             reject("Request failed")
-//         // const res = await fs.appendFile("newtext.txt",chunk)
-//         //     .then(() => {
-//         //       resolve("hi")  
-//         //     })
-//         //     .catch(() => {
-//         //         reject("Error")
-//         //     })
-//     })
-    
-// }
-
 const upload = async () => {
     console.time("start")
 
     const fd = await fs.open("Hmmmm.txt", 'r');
     const fileSize = (await fd.stat()).size;
 
-    // const chunkSize = 2*1024*1024;
-    const chunkSize = 2097152;
+    const chunkSize = 2*1024*1024;
+    // const chunkSize = 2097152;
     const totalChunks = Math.ceil(fileSize/chunkSize);
+    console.log(totalChunks);
 
     let noOfChunks = 0
     if(fileSize < 10*1024*1024)
@@ -103,4 +112,5 @@ const upload = async () => {
     });
 }
 
-upload();
+// folderRequest();
+upload()
