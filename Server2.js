@@ -9,11 +9,11 @@ const path = require("path");
 app.use(cors());
 
 let fd = 0;
-let chunkCount = 0
-let chunkGroup = 0;
-let chunks = [];
-// let writeStream = fsSync.createWriteStream("uploaded-file.txt", {flags: 'a'});
+let chunkCount = 0;
 
+// if (!fs.existsSync(path.join(__dirname + `/uploads`))) {
+//   fs.mkdirSync(path.join(__dirname + `/uploads`));
+// }
 
 (async() => {
   fd = await fs.open("uploaded-file.mp4", 'a');
@@ -24,6 +24,9 @@ app.post("/uploadFile", () => {
 })
 
 app.post("/upload", async(req, res) => {
+
+  // const { filename } = req.params;
+
   const totalChunks = req.header('X-Total-Chunks');
   const noOfChunks = req.header('X-No-Of-Chunks');
   chunkCount = req.header('X-Chunk-Count');
@@ -31,13 +34,7 @@ app.post("/upload", async(req, res) => {
   req.on("data", async(chunk) => {
 
     try {
-
-      console.log(chunkCount);
-      await fs.appendFile("uploaded-file.mp4", chunk);
-      // if(chunkCount%noOfChunks === 0){
-      //   chunkGroup++
-      // }
-      // await fs.appendFile(__dirname+`/files/${chunkGroup}.txt`, chunk);
+      await fs.appendFile(fd, chunk);
       
     } catch (error) {
       console.error("Error writing chunk:", error);
@@ -48,17 +45,12 @@ app.post("/upload", async(req, res) => {
 
   req.on("end", async() => {
   
-    // if(req.header('X-Chunk-Count') == chunkCount){
-      // console.log(`Chunks received - ${chunkCount}`);
-      // console.log(req.header('X-Chunk-Count'))
-    // }
     res.sendStatus(200);
 
     if(chunkCount == totalChunks){
-      // writeStream.end();
       chunkCount = 0;
       console.log("File upload Complete");
-      // await fd.close();
+      await fd.close();
       return;
     }  
   });
@@ -69,10 +61,6 @@ app.post("/upload", async(req, res) => {
   });
 
 });
-
-// async function processChunks(chunk){
-
-// }
 
 app.listen(3000, () => {
   console.log("Server listening on port 3000");
