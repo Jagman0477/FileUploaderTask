@@ -11,6 +11,7 @@ app.use(cors());
 let fd = 0;
 let chunkCount = 0
 let chunkGroup = 0;
+let chunks = [];
 // let writeStream = fsSync.createWriteStream("uploaded-file.txt", {flags: 'a'});
 
 
@@ -25,34 +26,39 @@ app.post("/uploadFile", () => {
 app.post("/upload", async(req, res) => {
   const totalChunks = req.header('X-Total-Chunks');
   const noOfChunks = req.header('X-No-Of-Chunks');
+  chunkCount = req.header('X-Chunk-Count');
 
   req.on("data", async(chunk) => {
+
     try {
-      // writeStream.write(chunk);
-      // console.log(chunk);
-    await fs.appendFile(fd, chunk);
-    // if(chunkCount%noOfChunks === 0){
-    //   chunkGroup++
-    // }
-    // await fs.appendFile(__dirname+`/files/${chunkGroup}.txt`, chunk);
+
+      console.log(chunkCount);
+      await fs.appendFile("uploaded-file.mp4", chunk);
+      // if(chunkCount%noOfChunks === 0){
+      //   chunkGroup++
+      // }
+      // await fs.appendFile(__dirname+`/files/${chunkGroup}.txt`, chunk);
       
-    
     } catch (error) {
       console.error("Error writing chunk:", error);
       return res.sendStatus(500);
     }
+
   }); 
 
   req.on("end", async() => {
-    chunkCount++;
-    console.log(`Chunks received - ${chunkCount}`);
+  
+    // if(req.header('X-Chunk-Count') == chunkCount){
+      // console.log(`Chunks received - ${chunkCount}`);
+      // console.log(req.header('X-Chunk-Count'))
+    // }
     res.sendStatus(200);
 
     if(chunkCount == totalChunks){
       // writeStream.end();
       chunkCount = 0;
       console.log("File upload Complete");
-      await fd.close();
+      // await fd.close();
       return;
     }  
   });

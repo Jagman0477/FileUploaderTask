@@ -15,22 +15,13 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
     const chunkSize = 2*1024*1024;
-    const reader = new FileReader();
     let totalChunks = 0
     let chunkCount = 0;
     let fileSize = 0;
     let sizeRemaining = 0;
     let offset = 0
     let theFile = null;
-
-    let noOfChunks = 0
-    if(fileSize < 10*1024*1024)
-        noOfChunks = 1
-    else if(fileSize < 100*1024*1024)
-        noOfChunks = 2
-    else if(fileSize < 1000*1024*1024)
-        noOfChunks = 4
-    else noOfChunks = 6
+    let noOfChunks = 0;
 
     let chunks = []
     let writePromises = []
@@ -39,76 +30,97 @@
         const file = document.getElementById("file").files[0];
         if(file.size > chunkSize){
           fileSize = file.size;
-          theFile = file
+
+          if(fileSize < 10*1024*1024)
+              noOfChunks = 1
+          else if(fileSize < 100*1024*1024)
+              noOfChunks = 2
+          else if(fileSize < 1000*1024*1024)
+              noOfChunks = 4
+          else noOfChunks = 6
+
           sizeRemaining = fileSize
-          totalChunks = Math.ceil(fileSize/chunkSize);
-        
+          totalChunks = Math.ceil(fileSize/chunkSize);        
             let chunk = new Blob();
-
-
-      //       console.log(file);
-
             readNextChunk()
-
-            // reader.addEventListener('load', function(evt){
-            //   console.log(evt);
-            // })
-
-      //   }
-        }
-        
+        } 
       }
 
-    //   // function upload(){
-    //   //   readFile
-    //   // }
 
       async function readNextChunk(){
-        console.log("hi");
-        writePromises = []
-        if(sizeRemaining == 0 && chunks.length > 0){
-          for (const chunk of chunks){
-                    writePromises.push( sendChunkToServer(chunk, totalChunks, noOfChunks) )
-                }
-                chunks = []
-                Promise.all(writePromises);
-          return;
-        }
-        if(sizeRemaining > 0){
-          if(sizeRemaining < chunkSize){
-            chunk = (document.getElementById("file").files[0]).slice(fileSize-sizeRemaining, fileSize)
-            sizeRemaining = 0;
+        writePromises = [];
+
+        //For when the remaining size of file to be sent is > chunk size
+          if(sizeRemaining > 0){
+
+            if((sizeRemaining < chunkSize) && sizeRemaining !== 0){
+              chunk = (document.getElementById("file").files[0]).slice(fileSize-sizeRemaining, fileSize)
+              sizeRemaining = 0;
+            } else if(sizeRemaining >= chunkSize) {
+              chunk = (document.getElementById("file").files[0]).slice((fileSize-sizeRemaining), (fileSize-sizeRemaining)+chunkSize);
+              sizeRemaining = (sizeRemaining-chunkSize);
+            }
+
+            chunkCount++;  
+            chunks.push(chunk);  
+            if(chunks.length === 0)
+              return;      
+            
+            //Send the chunks in parallel.
+            if(chunks.length === noOfChunks){
+              for (const chunk of chunks){ 
+                const TempCount2 = chunkCount;
+                      writePromises.push( sendChunkToServer(chunk, totalChunks, noOfChunks, TempCount2) )
+                  } 
+
+              chunks = []
+            }
+            console.log(chunkCount);
+            await Promise.all(writePromises);
+            await readNextChunk();
+          } else if(sizeRemaining === 0 && chunks.length > 0){
+                for (const chunk of chunks){
+                  const TempCount1 = chunkCount;
+                          writePromises.push( sendChunkToServer(chunk, totalChunks, noOfChunks, TempCount1) )
+                      }
+                      chunks = []
+                      Promise.all(writePromises);
+                      writePromises = [];
+                //Close the process.
+            return;
           } else {
-            chunk = (document.getElementById("file").files[0]).slice((fileSize-sizeRemaining), (fileSize-sizeRemaining)+chunkSize);
-            sizeRemaining = (sizeRemaining-chunkSize);
+            return;
           }
-          if(chunks.length == noOfChunks){
-            for (const chunk of chunks){
-                    writePromises.push( sendChunkToServer(chunk, totalChunks, noOfChunks) )
-                }
-                chunks = []
-                Promise.all(writePromises);
-          }
-          chunks.push(chunk);
-          chunkCount++;
-          if(chunks.length == 0) return;
-          readNextChunk();
-        } else {
-          return;
         }
 
-      }
+      async function sendChunkToServer(chunk, totalChunks, noOfChunks, TempCount3){
 
-      async function sendChunkToServer(chunk, totalChunks, noOfChunks){
         return new Promise(async (resolve, reject) => {
-            const res = await axios.post('http://localhost:3000/upload', chunk, {headers: {"Content-Type": "application/json", 'X-Total-Chunks': totalChunks,'X-No-Of-Chunks': noOfChunks }
-            }) 
-            if(res.status === 200){
-                resolve("Successfull transfer.")
-            }  
-            else
-                reject("Request failed")
-      })
+
+          console.log(TempCount3);
+          const xhr = new XMLHttpRequest();
+
+          xhr.open('POST', 'http://localhost:3000/upload');
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.setRequestHeader('X-Total-Chunks', totalChunks);
+          xhr.setRequestHeader('X-No-Of-Chunks', noOfChunks);
+          xhr.setRequestHeader('X-Chunk-Count', TempCount3);
+
+          xhr.onload = () => {
+            if(xhr.status == 200)
+              resolve(":)");
+            else 
+              reject(":(");
+          }
+
+          xhr.onerror = () => {
+            reject(";(");
+          }
+
+          xhr.send(chunk);
+          
+        })
+      
     }
 
     </script>
