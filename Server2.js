@@ -8,16 +8,16 @@ const path = require("path");
 
 app.use(cors());
 
-let fd = 0;
+// let fd = 0;
 let chunkCount = 0;
 
 // if (!fs.existsSync(path.join(__dirname + `/uploads`))) {
 //   fs.mkdirSync(path.join(__dirname + `/uploads`));
 // }
 
-(async() => {
-  fd = await fs.open("uploaded-file.mp4", 'a');
-})();
+// (async() => {
+//   fd = await fs.open("uploaded-file.mp4", 'a');
+// })();
 
 app.post("/uploadFile", () => {
   chunkCount = 0;
@@ -34,7 +34,8 @@ app.post("/upload", async(req, res) => {
   req.on("data", async(chunk) => {
 
     try {
-      await fs.appendFile(fd, chunk);
+      // await fs.appendFile(fd, chunk);
+      fsSync.appendFileSync("uploaded-file.mp4", chunk);
       
     } catch (error) {
       console.error("Error writing chunk:", error);
@@ -50,7 +51,7 @@ app.post("/upload", async(req, res) => {
     if(chunkCount == totalChunks){
       chunkCount = 0;
       console.log("File upload Complete");
-      await fd.close();
+      // await fd.close();
       return;
     }  
   });
@@ -62,6 +63,8 @@ app.post("/upload", async(req, res) => {
 
 });
 
-app.listen(3000, () => {
+let server = app.listen(3000, () => {
   console.log("Server listening on port 3000");
 });
+
+server.timeout = 1200000;
